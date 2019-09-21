@@ -14,33 +14,8 @@ namespace ServerAccessToFilesOnTheServer
         }
         public string adressName { get; set; }
         private string[] allDisks;
-        const string enter = "\r\n";
-
-        private bool AdressHaving()
-        {
-            return File.Exists(adressName);
-        }
-        //public void FileManager()
-        //{
-        //    SelectDisk();
-        //    while (true)
-        //    {
-        //        Console.WriteLine("If you want to select a different folder or file, click Enter");
-        //        var key = Console.ReadKey(true);
-        //        if (key.Key == ConsoleKey.Enter)
-        //        {
-        //            InFolderOrFile();
-        //        }
-        //        else if (key.Key == ConsoleKey.Backspace)
-        //        {
-        //            BackFolder();
-        //        }
-        //        else if (key.Key == ConsoleKey.Escape)
-        //        {
-        //            throw new OperationCanceledException();
-        //        }
-        //    }
-        //}
+        private const string enter = "\r\n";
+        
         public (string allDirectoriesAndFilesOrDisks, bool findDisk) BackFolder(bool withRemove)
         {
             var allDirectoriesAndFilesOrDisks = "";
