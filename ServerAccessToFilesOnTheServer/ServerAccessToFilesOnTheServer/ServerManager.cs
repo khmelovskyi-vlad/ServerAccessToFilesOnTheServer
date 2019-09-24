@@ -64,8 +64,6 @@ namespace ServerAccessToFilesOnTheServer
                 }
                 else if (allDirectoriesAndFiles == "Redact" && directoryOrFileFount == false)
                 {
-                    try
-                    {
                         RedactFile(listener);
                         var adressName = manager.adressName;
                         BackFolder(false, listener);
@@ -75,11 +73,14 @@ namespace ServerAccessToFilesOnTheServer
                         }
                         File.WriteAllText(adressName, data.ToString(), Encoding.Default);
                         return;
-                    }
-                    catch (SocketException)
-                    {
-                        return;
-                    }
+                }
+                else if (allDirectoriesAndFiles == "PathTooLongException" && directoryOrFileFount == false)
+                {
+                    listener.Send(Encoding.ASCII.GetBytes($"Name is too long name, wtite less"));
+                }
+                else if (allDirectoriesAndFiles == "ArgumentException" && directoryOrFileFount == false)
+                {
+                    listener.Send(Encoding.ASCII.GetBytes($"Bed input {data.ToString()}, try again"));
                 }
                 else
                 {
@@ -124,18 +125,12 @@ namespace ServerAccessToFilesOnTheServer
             buffer = new byte[256];
             size = 0;
             data = new StringBuilder();
-
             do
             {
-                try
-                {
-                    size = listener.Receive(buffer);
-                }
-                catch (SocketException)
-                {
-
-                }
+                size = listener.Receive(buffer);
                 data.Append(Encoding.ASCII.GetString(buffer, 0, size));
+                var f = listener.Available;
+                Console.WriteLine(f);
             } while (listener.Available > 0);
         }
     }

@@ -55,6 +55,16 @@ namespace ServerAccessToFilesOnTheServer
                 adressName = saveAdress;
                 return ($"Bed input {ex}, try again", false);
             }
+            catch (PathTooLongException)
+            {
+                adressName = saveAdress;
+                return ("PathTooLongException", false);
+            }
+            catch (ArgumentException)
+            {
+                adressName = saveAdress;
+                return ("ArgumentException", false);
+            }
             catch (IOException)
             {
                 adressName = adressName.Substring(0, adressName.Length - 1);

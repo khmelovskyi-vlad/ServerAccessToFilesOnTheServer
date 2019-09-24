@@ -17,8 +17,9 @@ namespace ServerAccessToFilesOnTheServer
             tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             var tcpEndPoint = new IPEndPoint(IPAddress.Any, port);
             tcpSocket.Bind(tcpEndPoint);
+            tcpSocket.Listen(6);
         }
-        private const string ip2 = "192.168.0.105";
+        private const string ip2 = "192.168.0.107";
         private const int port = 2048;
         private Socket tcpSocket;
 
@@ -29,7 +30,6 @@ namespace ServerAccessToFilesOnTheServer
         }
         private void Run()
         {
-            tcpSocket.Listen(1);
             while (true)
             {
                 using (Socket listener = tcpSocket.Accept())
