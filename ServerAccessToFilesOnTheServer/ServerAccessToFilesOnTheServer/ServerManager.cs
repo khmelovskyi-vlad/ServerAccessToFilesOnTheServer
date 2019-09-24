@@ -129,8 +129,6 @@ namespace ServerAccessToFilesOnTheServer
             {
                 size = listener.Receive(buffer);
                 data.Append(Encoding.ASCII.GetString(buffer, 0, size));
-                var f = listener.Available;
-                Console.WriteLine(f);
             } while (listener.Available > 0);
         }
     }
