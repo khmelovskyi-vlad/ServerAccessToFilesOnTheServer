@@ -23,21 +23,22 @@ namespace ServerAccessToFilesOnTheServer
         private const int port = 2048;
         private Socket tcpSocket;
 
-        public void Start()
+        public void Start(int n)
         {
-            Thread thread = new Thread(new ThreadStart(Run));
-            thread.Start();
+            for (int i = 0; i < n; i++)
+            {
+                Run();
+            }
         }
         private void Run()
         {
-            while (true)
-            {
-                using (Socket listener = tcpSocket.Accept())
-                {
-                    ServerManager methods = new ServerManager(listener);
-                    methods.Server();
-                }
-            }
+            tcpSocket.BeginAccept(ar => {
+                var listener = (Socket)ar.AsyncState;
+                var socket = listener.EndAccept(ar);
+                ServerManager methods = new ServerManager(socket);
+                methods.Server();
+                Run();
+            }, tcpSocket);              
         }
 
     }
