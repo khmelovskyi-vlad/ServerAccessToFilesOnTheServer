@@ -10,13 +10,13 @@ namespace ServerAccessToFilesOnTheServer
 {
     class ServerManager
     {
-        public ServerManager(Socket listener)
+        IUserInteractor manager;
+        public ServerManager(Socket listener, IUserInteractor userInteractor)
         {
+            this.manager = userInteractor;
             this.listener = listener;
-            manager = new Manager();
         }
         private Socket listener;
-        private Manager manager;
         private byte[] buffer;
         private int size;
         private StringBuilder data;
@@ -25,7 +25,7 @@ namespace ServerAccessToFilesOnTheServer
             try
             {
                 var allDisks = manager.AllDisk();
-                listener.Send(Encoding.ASCII.GetBytes($"{allDisks}\r\nSelect a disc\r\nWrite name your disk"));
+                SendMessage($"{allDisks}\r\nSelect a disc\r\nWrite name your disk");
                 SelectDisk(listener);
                 while (true)
                 {
@@ -41,63 +41,59 @@ namespace ServerAccessToFilesOnTheServer
                     }
                     else
                     {
-                        listener.Send(Encoding.ASCII.GetBytes("Don`t understand"));
+                        SendMessage("Don`t understand");
                     }
                 }
             }
-            catch (SocketException)
+            catch (SocketException ex)
             {
+                Console.WriteLine(ex);
                 return;
             }
         }
         private void InFolderOrFile(Socket listener)
         {
-            listener.Send(Encoding.ASCII.GetBytes("Enter name folder of file"));
+            SendMessage("Enter name folder of file");
             while (true)
             {
                 AnswerClient(listener);
                 var (allDirectoriesAndFiles, directoryOrFileFount) = manager.InFolderOrFile(data.ToString());
                 if (directoryOrFileFount)
                 {
-                    listener.Send(Encoding.ASCII.GetBytes($"{allDirectoriesAndFiles}If you want to select a different folder or file, click C else if you want return to previous folder click P"));
+                    SendMessage($"{allDirectoriesAndFiles}If you want to select a different folder or file, click C else if you want return to previous folder click P");
                     return;
                 }
                 else if (allDirectoriesAndFiles == "Redact" && directoryOrFileFount == false)
                 {
-                        RedactFile(listener);
-                        var adressName = manager.adressName;
-                        BackFolder(false, listener);
-                        if (data.ToString() == "???")
-                        {
-                            return;
-                        }
-                        File.WriteAllText(adressName, data.ToString(), Encoding.Default);
-                        return;
+                    ReadAndSendFile(listener);
+                    manager.SaveFile(data.ToString());
+                    BackFolder(false, listener);
+                    return;
                 }
                 else if (allDirectoriesAndFiles == "PathTooLongException" && directoryOrFileFount == false)
                 {
-                    listener.Send(Encoding.ASCII.GetBytes($"Name is too long name, wtite less"));
+                    SendMessage($"Name is too long name, wtite less");
                 }
                 else if (allDirectoriesAndFiles == "ArgumentException" && directoryOrFileFount == false)
                 {
-                    listener.Send(Encoding.ASCII.GetBytes($"Bed input {data.ToString()}, try again"));
+                    SendMessage($"Bed input {data.ToString()}, try again");
                 }
                 else
                 {
-                    listener.Send(Encoding.ASCII.GetBytes(allDirectoriesAndFiles));
+                    SendMessage(allDirectoriesAndFiles);
                 }
             }
         }
-        private void RedactFile(Socket listener)
+        private void ReadAndSendFile(Socket listener)
         {
-            var fileLines = File.ReadAllText(manager.adressName);
-            listener.Send(Encoding.ASCII.GetBytes($"???{fileLines}"));
+            var fileLines = manager.ReadFile();
+            SendMessage(fileLines);
             AnswerClient(listener);
         }
         private void BackFolder(bool withRemove, Socket listener)
         {
             var (allDisks, findDisk) = manager.BackFolder(withRemove);
-            listener.Send(Encoding.ASCII.GetBytes(allDisks));
+            SendMessage(allDisks);
             if (findDisk)
             {
                 SelectDisk(listener);
@@ -111,12 +107,12 @@ namespace ServerAccessToFilesOnTheServer
                 var (allDirectoriesAndFiles, diskFound) = manager.SelectDisk(data.ToString());
                 if (diskFound)
                 {
-                    listener.Send(Encoding.ASCII.GetBytes($"{allDirectoriesAndFiles}If you want to select a different folder or file, click C else if you want return to previous folder click P"));
+                    SendMessage($"{allDirectoriesAndFiles}If you want to select a different folder or file, click C else if you want return to previous folder click P");
                     return;
                 }
                 else
                 {
-                    listener.Send(Encoding.ASCII.GetBytes("Have`t this disk, write name your disk"));
+                    SendMessage("Have`t this disk, write name your disk");
                 }
             }
         }
@@ -125,11 +121,17 @@ namespace ServerAccessToFilesOnTheServer
             buffer = new byte[256];
             size = 0;
             data = new StringBuilder();
+            IList<ArraySegment<byte>> buffers = new ArraySegment<ArraySegment<byte>>();
             do
             {
+                var s = listener.BeginReceive(buffers, SocketFlags.None, x => Console.WriteLine(), null);
                 size = listener.Receive(buffer);
                 data.Append(Encoding.ASCII.GetString(buffer, 0, size));
             } while (listener.Available > 0);
+        }
+        private void SendMessage(string message)
+        {
+            listener.Send(Encoding.ASCII.GetBytes(message));
         }
     }
 }

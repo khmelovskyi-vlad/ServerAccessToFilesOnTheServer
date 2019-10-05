@@ -43,7 +43,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IUserInteractor.cs" />
     <Compile Include="Manager.cs" />
+    <Compile Include="ManagerUserInteractor.cs" />
     <Compile Include="NetServer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

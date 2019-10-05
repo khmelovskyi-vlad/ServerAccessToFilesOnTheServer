@@ -19,26 +19,28 @@ namespace ServerAccessToFilesOnTheServer
             tcpSocket.Bind(tcpEndPoint);
             tcpSocket.Listen(6);
         }
-        private const string ip2 = "192.168.0.107";
+        private const string ip2 = "192.168.0.108";
         private const int port = 2048;
         private Socket tcpSocket;
 
-        public void Start()
+        public void Start(int n)
         {
-            Thread thread = new Thread(new ThreadStart(Run));
-            thread.Start();
+            for (int i = 0; i < n; i++)
+            {
+                Run();
+            }
         }
         private void Run()
         {
-            while (true)
+            tcpSocket.BeginAccept(ar =>
             {
-                using (Socket listener = tcpSocket.Accept())
-                {
-                    ServerManager methods = new ServerManager(listener);
-                    methods.Server();
-                }
-            }
-        }
+                var listener = (Socket)ar.AsyncState;
+                var socket = listener.EndAccept(ar);
+                ServerManager methods = new ServerManager(socket, new ManagerUserInteractor());
+                methods.Server();
+                Run();
+            }, tcpSocket);
 
+        }
     }
 }

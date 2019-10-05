@@ -11,10 +11,9 @@ namespace ServerAccessToFilesOnTheServer
         static void Main(string[] args)
         {
             NetServer netServer = new NetServer();
-            for (int i = 0; i < 6; i++)
-            {
-                netServer.Start();
-            }
+            netServer.Start(6);
+            Console.ReadKey();
+
         }
     }
 }
