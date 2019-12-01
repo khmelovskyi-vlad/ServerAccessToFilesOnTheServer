@@ -42,6 +42,11 @@ namespace ServerAccessToFilesOnTheServer
         }
         public (string allDirectoriesAndFiles, bool directoryOrFileFount) InFolderOrFile(string fileName)
         {
+            var Redact = CheckToRedact(fileName);
+            if (Redact)
+            {
+                return ("Redact", false);
+            }
             var allDirectoriesAndFiles = ($"Select a folder{enter}");
             var saveAdress = adressName;
             try
@@ -49,11 +54,6 @@ namespace ServerAccessToFilesOnTheServer
                 var adress = $"{fileName}\\";
                 adressName = $"{adressName}{adress}";
                 allDirectoriesAndFiles += OutPutFoldersAndFiles();
-            }
-            catch (DirectoryNotFoundException ex)
-            {
-                adressName = saveAdress;
-                return ($"Bed input {ex}, try again", false);
             }
             catch (PathTooLongException)
             {
@@ -65,12 +65,44 @@ namespace ServerAccessToFilesOnTheServer
                 adressName = saveAdress;
                 return ("ArgumentException", false);
             }
-            catch (IOException)
+            catch (Exception ex)
             {
-                adressName = adressName.Substring(0, adressName.Length - 1);
-                return ("Redact", false);
+                adressName = saveAdress;
+                return ($"Bed input {ex}, try again", false);
             }
             return (allDirectoriesAndFiles, true);
+        }
+        private bool CheckToRedact(string fileName)
+        {
+            if (fileName.Length > 4)
+            {
+                var lastFourChar = fileName.Substring(fileName.Length - 4);
+                if (lastFourChar == ".txt")
+                {
+                    if (HaveFile(fileName))
+                    {
+                        adressName = $"{adressName}{fileName}";
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        private bool HaveFile(string fileName)
+        {
+            var allFiles = Directory.GetFiles(adressName);
+            var fileNameAdress = $"{adressName}{fileName}";
+            if (allFiles.Length != 0)
+            {
+                foreach (var file in allFiles)
+                {
+                    if (fileNameAdress == file)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
         public string ReadFile()
         {

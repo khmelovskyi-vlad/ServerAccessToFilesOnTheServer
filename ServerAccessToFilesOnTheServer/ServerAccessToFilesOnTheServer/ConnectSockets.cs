@@ -10,16 +10,16 @@ using System.Threading.Tasks;
 
 namespace ServerAccessToFilesOnTheServer
 {
-    class NetServer
+    class ConnectSockets
     {
-        public NetServer()
+        public ConnectSockets()
         {
             tcpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             var tcpEndPoint = new IPEndPoint(IPAddress.Any, port);
             tcpSocket.Bind(tcpEndPoint);
             tcpSocket.Listen(6);
         }
-        private const string ip2 = "192.168.0.108";
+        private const string ip2 = "192.168.0.106";
         private const int port = 2048;
         private Socket tcpSocket;
 
@@ -37,10 +37,9 @@ namespace ServerAccessToFilesOnTheServer
                 var listener = (Socket)ar.AsyncState;
                 var socket = listener.EndAccept(ar);
                 ServerManager methods = new ServerManager(socket, new ManagerUserInteractor());
-                methods.Server();
+                methods.FindFiles();
                 Run();
             }, tcpSocket);
-
         }
     }
 }

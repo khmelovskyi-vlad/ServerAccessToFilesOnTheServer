@@ -46,7 +46,7 @@
     <Compile Include="IUserInteractor.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="ManagerUserInteractor.cs" />
-    <Compile Include="NetServer.cs" />
+    <Compile Include="ConnectSockets.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServerManager.cs" />

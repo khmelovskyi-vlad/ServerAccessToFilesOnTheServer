@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ServerAccessToFilesOnTheServer
@@ -18,26 +19,26 @@ namespace ServerAccessToFilesOnTheServer
         }
         private Socket listener;
         private byte[] buffer;
-        private int size;
+        const int size = 256;
         private StringBuilder data;
-        public void Server()
+        public void FindFiles()
         {
             try
             {
                 var allDisks = manager.AllDisk();
                 SendMessage($"{allDisks}\r\nSelect a disc\r\nWrite name your disk");
-                SelectDisk(listener);
+                SelectDisk();
                 while (true)
                 {
-                    AnswerClient(listener);
+                    AnswerClient();
 
                     if (data.ToString() == "C")
                     {
-                        InFolderOrFile(listener);
+                        InFolderOrFile();
                     }
                     else if (data.ToString() == "P")
                     {
-                        BackFolder(true, listener);
+                        BackFolder(true);
                     }
                     else
                     {
@@ -47,16 +48,17 @@ namespace ServerAccessToFilesOnTheServer
             }
             catch (SocketException ex)
             {
+                listener.Close();
                 Console.WriteLine(ex);
                 return;
             }
         }
-        private void InFolderOrFile(Socket listener)
+        private void InFolderOrFile()
         {
             SendMessage("Enter name folder of file");
             while (true)
             {
-                AnswerClient(listener);
+                AnswerClient();
                 var (allDirectoriesAndFiles, directoryOrFileFount) = manager.InFolderOrFile(data.ToString());
                 if (directoryOrFileFount)
                 {
@@ -65,14 +67,14 @@ namespace ServerAccessToFilesOnTheServer
                 }
                 else if (allDirectoriesAndFiles == "Redact" && directoryOrFileFount == false)
                 {
-                    ReadAndSendFile(listener);
+                    ReadAndSendFile();
                     manager.SaveFile(data.ToString());
-                    BackFolder(false, listener);
+                    BackFolder(false);
                     return;
                 }
                 else if (allDirectoriesAndFiles == "PathTooLongException" && directoryOrFileFount == false)
                 {
-                    SendMessage($"Name is too long name, wtite less");
+                    SendMessage($"Name is too long name, write less");
                 }
                 else if (allDirectoriesAndFiles == "ArgumentException" && directoryOrFileFount == false)
                 {
@@ -84,26 +86,26 @@ namespace ServerAccessToFilesOnTheServer
                 }
             }
         }
-        private void ReadAndSendFile(Socket listener)
+        private void ReadAndSendFile()
         {
             var fileLines = manager.ReadFile();
             SendMessage(fileLines);
-            AnswerClient(listener);
+            AnswerClient();
         }
-        private void BackFolder(bool withRemove, Socket listener)
+        private void BackFolder(bool withRemove)
         {
             var (allDisks, findDisk) = manager.BackFolder(withRemove);
             SendMessage(allDisks);
             if (findDisk)
             {
-                SelectDisk(listener);
+                SelectDisk();
             }
         }
-        private void SelectDisk(Socket listener)
+        private void SelectDisk()
         {
             while (true)
             {
-                AnswerClient(listener);
+                AnswerClient();
                 var (allDirectoriesAndFiles, diskFound) = manager.SelectDisk(data.ToString());
                 if (diskFound)
                 {
@@ -116,22 +118,54 @@ namespace ServerAccessToFilesOnTheServer
                 }
             }
         }
-        private void AnswerClient(Socket listener)
+        AutoResetEvent resetSend = new AutoResetEvent(false);
+        AutoResetEvent resetReceive = new AutoResetEvent(false);
+        private void AnswerClient()
         {
-            buffer = new byte[256];
-            size = 0;
+            buffer = new byte[size];
             data = new StringBuilder();
-            IList<ArraySegment<byte>> buffers = new ArraySegment<ArraySegment<byte>>();
             do
             {
-                var s = listener.BeginReceive(buffers, SocketFlags.None, x => Console.WriteLine(), null);
-                size = listener.Receive(buffer);
-                data.Append(Encoding.ASCII.GetString(buffer, 0, size));
+                var k = listener.BeginReceive(buffer, 0, size, SocketFlags.None, ReceiveCallback, listener);
+                resetReceive.WaitOne();
             } while (listener.Available > 0);
+        }
+        private void ReceiveCallback(IAsyncResult AR)
+        {
+            Socket current = (Socket)AR.AsyncState;
+            int received;
+
+            try
+            {
+                received = current.EndReceive(AR);
+            }
+            catch (SocketException)
+            {
+                Console.WriteLine("Client forcefully disconnected");
+                resetReceive.Set();
+                return;
+            }
+            data.Append(Encoding.ASCII.GetString(buffer, 0, received));
+            resetReceive.Set();
         }
         private void SendMessage(string message)
         {
-            listener.Send(Encoding.ASCII.GetBytes(message));
+            byte[] byteData = Encoding.ASCII.GetBytes(message);
+            listener.BeginSend(byteData, 0, byteData.Length, 0, SendCallback, listener);
+            resetSend.WaitOne();
+        }
+        private void SendCallback(IAsyncResult AR)
+        {
+            Socket current = (Socket)AR.AsyncState;
+            try
+            {
+                current.EndSend(AR);
+            }
+            catch (SocketException)
+            {
+                Console.WriteLine("Can`t send message");
+            }
+            resetSend.Set();
         }
     }
 }
