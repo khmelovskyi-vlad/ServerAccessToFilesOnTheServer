@@ -10,7 +10,7 @@ namespace ServerAccessToFilesOnTheServer
     {
         static void Main(string[] args)
         {
-            ConnectSockets netServer = new ConnectSockets();
+            NetServer netServer = new NetServer();
             netServer.Start(6);
             Console.ReadKey();
 
